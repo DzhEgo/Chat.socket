@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Чат</title>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <input id="m" autocomplete="off" /><button id="send">Отправить</button>
+    <select id="color">
+      <option value="black">Черный</option>
+      <option value="red">Красный</option>
+      <option value="blue">Синий</option>
+      <option value="green">Зеленый</option>
+    </select>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      $(function () {
+        var socket = io()
+        var username = prompt('Пожалуйста, представьтесь:')
+
+        var selectedColor = 'black'
+
+        $('#color').change(function () {
+          selectedColor = $('#color').val()
+        })
+
+        document.addEventListener('keypress', function (e) {
+          var key = e.which || e.keyCode
+          if (key === 13) { 
+            $('#send').click()
+           }
+        })
+        
+        socket.emit('user join', username)
+    
+        socket.on('welcome', function (username, users) {
+          if (users.length === 1) {
+            $('#messages').append($('<li>').text('Добро пожаловать. Вы первый в чате.'))
+          } else {
+            $('#messages').append($('<li>').text('Добро пожаловать. В чате уже присутствуют: ' + users.join(', ')))
+          }
+        })
+    
+        socket.on('user joined', function (username) {
+          $('#messages').append($('<li>').text(username + ' присоединился.'))
+        })
+    
+        socket.on('user left', function (username) {
+          $('#messages').append($('<li>').text(username + ' нас покинул.'))
+        })
+    
+        $('#send').click(function () {
+          var message = $('#m').val()
+          if (message.trim() !== '') {
+            socket.emit('chat message', username + ': ' + message, selectedColor)
+            $('#m').val('')
+          }
+          return false
+        })
+    
+        socket.on('init messages', function (messages) {
+          messages.forEach(function (message) {
+            $('#messages').append($('<li>').text(message))
+          })
+        })
+    
+        socket.on('chat message', function (data) {
+          var message = data.message
+          var color = data.color
+          $('#messages').append($('<li>').text(message).css('color', color))
+        })
+      })
+    </script>
+  </body>
+</html>
